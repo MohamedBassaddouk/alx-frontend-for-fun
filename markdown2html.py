@@ -1,95 +1,64 @@
 #!/usr/bin/python3
 """
-This is a program that converts markdown to html
+This is a script to convert a Markdown file to HTML.
+
+Usage:
+    ./markdown2html.py [input_file] [output_file]
+
+Arguments:
+    input_file: the name of the Markdown file to be converted
+    output_file: the name of the output HTML file
+
+Example:
+    ./markdown2html.py README.md README.html
 """
 
+import argparse
+import pathlib
+import re
 
-import sys
-from os.path import isfile
 
-if __name__ == "__main__":
-    count = 0
-    if len(sys.argv) < 3:
-        print("Usage: ./markdown2html.py README.md README.html",
-              file=sys.stderr)
+def convert_md_to_html(input_file, output_file):
+    '''
+    Converts markdown file to HTML file
+    '''
+    # Read the contents of the input file
+    with open(input_file, encoding='utf-8') as f:
+        md_content = f.readlines()
+
+    html_content = []
+    for line in md_content:
+        # Check if the line is a heading
+        match = re.match(r'(#){1,6} (.*)', line)
+        if match:
+            # Get the level of the heading
+            h_level = len(match.group(1))
+            # Get the content of the heading
+            h_content = match.group(2)
+            # Append the HTML equivalent of the heading
+            html_content.append(f'<h{h_level}>{h_content}</h{h_level}>\n')
+        else:
+            html_content.append(line)
+
+    # Write the HTML content to the output file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.writelines(html_content)
+
+
+if __name__ == '__main__':
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Convert markdown to HTML')
+    parser.add_argument('input_file', help='path to input markdown file')
+    parser.add_argument('output_file', help='path to output HTML file')
+    args = parser.parse_args()
+
+    # Check if the input file exists
+    input_path = pathlib.Path(args.input_file)
+    if not input_path.is_file():
+        print(f'Missing {input_path}', file=sys.stderr)
         sys.exit(1)
-    elif not isfile(sys.argv[1]):
-        print(f"Missing {sys.argv[1]}", file=sys.stderr)
-        sys.exit(1)
 
-    # To read the file
-    with open(sys.argv[1], 'r') as f:
-        target = open(sys.argv[2], 'w')
-        html = f.readlines()
+    # Convert the markdown file to HTML
+    convert_md_to_html(args.input_file, args.output_file)
 
-        ul_list = False
-        ol_list = False
 
-        for x in html:
-            '''
-            method that returns True if the input string
-            starts with the specified prefix(string): rstrip
-            '''
-            # Check the headings
-            if x.startswith('#'):
-                # rstrip remove trailing line
-                text = x.rstrip()
-                if x.startswith('######'):
-                    line = ("<h6>" + text[7::1] + "</h6>" + "\n")
-                    target.write(line)
-                elif x.startswith('#####'):
-                    line = ("<h5>" + text[6::1] + "</h5>" + "\n")
-                    target.write(line)
-                elif x.startswith('####'):
-                    line = ("<h4>" + text[5::1] + "</h4>" + "\n")
-                    target.write(line)
-                elif x.startswith('###'):
-                    line = ("<h3>" + text[4::1] + "</h3>" + "\n")
-                    target.write(line)
-                elif x.startswith('##'):
-                    line = ("<h2>" + text[3::1] + "</h2>" + "\n")
-                    target.write(line)
-                elif x.startswith('#'):
-                    line = ("<h1>" + text[2::1] + "</h1>" + "\n")
-                    target.write(line)
-
-                character = x
-            # check for unordered list
-            elif x.startswith('-'):
-                if not ul_list:
-                    target.write("<ul>\n")
-                    ul_list = True
-
-                text = x.rstrip()
-                line = ("<li>" + text[2::1] + "</li>" + "\n")
-                target.write(line)
-                character = x
-            elif ul_list and character.startswith('-'):
-                target.write("</ul>\n")
-                target.write(x)
-                ul_list = False
-
-            # check fo ordered lists
-            elif x.startswith('*'):
-                if not ol_list:
-                    target.write("<ol>\n")
-                    ol_list = True
-                
-                text = x.rstrip()
-                line = ("<li>" + text[2::1] + "</li>" + "\n")
-                target.write(line)
-                character = x
-            elif ol_list and character.startswith('*'):
-                target.write("</ol>\n")
-                ol_list = False
-                target.write(x)
-
-            else:
-                target.write(x)
-                character = x
-        if ul_list:
-            target.write("</ul>\n")
-        if ol_list:
-            target.write("</ol>\n")
-        target.close()
-    sys.exit(0)
